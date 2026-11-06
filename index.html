@@ -1,0 +1,1764 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gudang Prompt</title>
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<style>
+/* CSS Reset & Variabel Neobrutalism Ringan (Ultra-Fast 60fps) */
+:root {
+  --bg: #F5F1FD;
+  --card: #ffffff;
+  --ink: #111111;
+  --on: #111111;
+  --y: #FFE14D;
+  --p: #FF7AB6;
+  --b: #6FB5FF;
+  --g: #3DDC97;
+  --o: #FF9F5A;
+  --coral: #FF6B5E;
+  --sh: 3px 3px 0 var(--ink);
+  --sh-lg: 5px 5px 0 var(--ink);
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #161424;
+    --card: #231f38;
+    --ink: #f8f6ff;
+    --on: #111111;
+    --sh: 3px 3px 0 #000;
+    --sh-lg: 5px 5px 0 #000;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #161424;
+  --card: #231f38;
+  --ink: #f8f6ff;
+  --on: #111111;
+  --sh: 3px 3px 0 #000;
+  --sh-lg: 5px 5px 0 #000;
+}
+
+html {
+  scroll-padding-top: env(safe-area-inset-top, 0px);
+  scroll-behavior: smooth;
+}
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background-color: var(--bg);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  font-weight: 500;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+button, input, textarea, select {
+  font: inherit;
+  color: inherit;
+}
+button {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+:focus-visible {
+  outline: 3px dashed var(--ink);
+  outline-offset: 2px;
+}
+
+/* Standarisasi Ukuran Input Rapi (.nb-in) - 42px */
+.nb-in {
+  width: 100%;
+  height: 42px !important;
+  min-height: 42px !important;
+  box-sizing: border-box !important;
+  border: 2px solid var(--ink);
+  background: var(--card);
+  padding: 0 12px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--ink);
+  outline: none;
+  border-radius: 6px;
+  box-shadow: 2px 2px 0 var(--ink);
+  transition: box-shadow .1s;
+}
+.nb-in:focus {
+  border-color: var(--ink);
+  box-shadow: 3px 3px 0 var(--p);
+}
+textarea.nb-in-area {
+  width: 100%;
+  min-height: 110px;
+  border: 2px solid var(--ink);
+  background: var(--card);
+  padding: 10px 12px;
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--ink);
+  resize: vertical;
+  outline: none;
+  border-radius: 6px;
+  box-shadow: 2px 2px 0 var(--ink);
+  transition: box-shadow .1s;
+}
+textarea.nb-in-area:focus {
+  box-shadow: 3px 3px 0 var(--p);
+}
+
+/* Custom Combobox Neobrutalism */
+.nb-combo {
+  position: relative;
+  width: 100%;
+}
+.nb-combo-btn {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  text-align: left;
+  cursor: pointer;
+  background: var(--card);
+  user-select: none;
+}
+.nb-combo-val {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
+  color: var(--ink);
+}
+.nb-combo-arrow {
+  flex-shrink: 0;
+  margin-left: 8px;
+  color: var(--ink);
+  transition: transform .15s ease;
+}
+.nb-combo.open .nb-combo-arrow {
+  transform: rotate(180deg);
+}
+.nb-combo-dropdown {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 70;
+  background: var(--card);
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  box-shadow: 4px 4px 0 var(--ink);
+  overflow: hidden;
+  animation: comboPop .12s ease-out;
+}
+.nb-combo-dropdown[hidden] {
+  display: none !important;
+}
+@keyframes comboPop {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.nb-combo-opt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 14px;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  border: 0;
+  border-bottom: 2px solid var(--ink);
+  background: var(--card);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  transition: background .1s, color .1s;
+}
+.nb-combo-opt:last-child {
+  border-bottom: 0;
+}
+.nb-combo-opt:hover {
+  background: var(--y);
+  color: var(--on);
+}
+.nb-combo-opt.selected {
+  background: var(--y);
+  color: var(--on);
+  font-weight: 800;
+}
+.nb-combo-check {
+  font-weight: 900;
+  font-size: 1.05rem;
+  opacity: 0;
+}
+.nb-combo-opt.selected .nb-combo-check {
+  opacity: 1;
+}
+
+/* Titik Password Proporsional & Rapi */
+input[type="password"] {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  font-size: 14px !important;
+  letter-spacing: 0.14em !important;
+}
+.pw-wrap {
+  position: relative;
+  display: flex;
+  width: 100%;
+}
+.pw-wrap .nb-in {
+  padding-right: 46px;
+}
+.eye-btn {
+  position: absolute;
+  right: 2px;
+  top: 2px;
+  bottom: 2px;
+  width: 40px;
+  border: 0;
+  border-left: 2px solid var(--ink);
+  background: var(--card);
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0 4px 4px 0;
+  cursor: pointer;
+}
+.eye-btn:hover {
+  background: var(--y);
+}
+
+/* Container */
+.wrap {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 16px 16px 110px;
+}
+
+/* Header & Animasi Judul Gudang Prompt */
+header.app-header {
+  margin-bottom: 20px;
+  display: grid;
+  gap: 12px;
+}
+.header-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+@keyframes titleWobble {
+  0%, 100% {
+    transform: rotate(-1.5deg) translateY(0);
+  }
+  50% {
+    transform: rotate(1.5deg) translateY(-4px);
+  }
+}
+
+@keyframes titleHue {
+  0%, 100% {
+    background-color: var(--y);
+  }
+  33% {
+    background-color: var(--p);
+  }
+  66% {
+    background-color: var(--b);
+  }
+}
+
+@keyframes zapPulse {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    transform: scale(1.22) rotate(-10deg);
+  }
+}
+
+h1.app-title {
+  margin: 0;
+  font-size: clamp(1.6rem, 4.5vw, 2.4rem);
+  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: -.02em;
+  background-color: var(--y);
+  color: var(--on);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 16px;
+  border: 3px solid var(--ink);
+  border-radius: 8px;
+  box-shadow: var(--sh);
+  will-change: transform, background-color;
+  animation: titleWobble 3.4s ease-in-out infinite, titleHue 10s linear infinite;
+  transition: transform .15s ease, box-shadow .15s ease;
+  user-select: none;
+}
+h1.app-title:hover {
+  animation-play-state: paused;
+  transform: rotate(0deg) scale(1.03);
+  box-shadow: var(--sh-lg);
+}
+
+.title-zap {
+  display: inline-block;
+  animation: zapPulse 2.2s ease-in-out infinite;
+}
+
+.logout-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  border: 3px solid var(--ink);
+  background: var(--coral);
+  color: #111;
+  border-radius: 8px;
+  box-shadow: var(--sh);
+  cursor: pointer;
+  transition: transform .08s, box-shadow .08s;
+}
+.logout-icon-btn:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--ink);
+}
+.logout-icon-btn:active {
+  transform: translate(3px, 3px);
+  box-shadow: 0 0 0 var(--ink);
+}
+
+.tools-bar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* Cloud Status Badge */
+.cloud-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 5px 12px;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  background: var(--y);
+  color: var(--on);
+  box-shadow: 2px 2px 0 var(--ink);
+  user-select: none;
+  transition: background .15s;
+}
+.cloud-badge.online {
+  background: var(--g);
+}
+.cloud-badge.offline {
+  background: var(--coral);
+  color: #111;
+}
+
+/* Tombol Neobrutalism Ringan */
+.btn {
+  border: 2px solid var(--ink);
+  background: var(--card);
+  padding: 7px 14px;
+  font-weight: 700;
+  border-radius: 6px;
+  box-shadow: var(--sh);
+  color: var(--ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  line-height: normal;
+  text-decoration: none;
+  transition: transform .08s, box-shadow .08s;
+}
+.btn:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--ink);
+}
+.btn:active {
+  transform: translate(3px, 3px);
+  box-shadow: 0 0 0 var(--ink);
+}
+.btn.pink{background: var(--p); color: var(--on);}
+.btn.blue{background: var(--b); color: var(--on);}
+.btn.green{background: var(--g); color: var(--on);}
+.btn.yel{background: var(--y); color: var(--on);}
+.btn.coral{background: var(--coral); color: var(--on);}
+.btn.sm {
+  padding: 4px 10px;
+  font-size: .82rem;
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+/* Panel Inline Satu Halaman (Zero Modal Backdrop) */
+.panel-container {
+  margin-bottom: 20px;
+}
+.nb-panel {
+  border: 3px solid var(--ink);
+  background: var(--card);
+  color: var(--ink);
+  border-radius: 10px;
+  box-shadow: var(--sh-lg);
+  margin-bottom: 18px;
+  overflow: visible;
+}
+.nb-panel[hidden] {
+  display: none !important;
+}
+
+.panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  border-bottom: 2px solid var(--ink);
+  font-weight: 700;
+  border-radius: 7px 7px 0 0;
+}
+.panel-head.pink{background: var(--p); color: var(--on);}
+.panel-head.blue{background: var(--b); color: var(--on);}
+.panel-head.coral{background: var(--coral); color: var(--on);}
+.panel-head.yel{background: var(--y); color: var(--on);}
+
+.panel-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.panel-title-wrap h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+.panel-close-btn {
+  border: 2px solid var(--ink);
+  background: var(--card);
+  color: var(--ink);
+  width: 30px;
+  height: 30px;
+  font-weight: 800;
+  font-size: 0.95rem;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 2px 2px 0 var(--ink);
+  cursor: pointer;
+}
+.panel-close-btn:hover {
+  background: var(--coral);
+  color: #111;
+}
+
+.panel-body {
+  padding: 16px 14px;
+  display: grid;
+  gap: 12px;
+}
+
+/* Alert Boxes & Errors */
+.alert-box {
+  border: 2px solid var(--ink);
+  background: var(--coral);
+  color: #111;
+  padding: 8px 12px;
+  font-weight: 700;
+  font-size: .88rem;
+  border-radius: 6px;
+  box-shadow: 2px 2px 0 var(--ink);
+  display: none;
+}
+.alert-box.show {
+  display: block;
+}
+.err {
+  color: #d6004c;
+  font-size: .82rem;
+  font-weight: 700;
+}
+:root[data-theme="dark"] .err {
+  color: #ff8fb3;
+}
+
+label.nb-label {
+  font-weight: 700;
+  display: grid;
+  gap: 5px;
+  font-size: 0.9rem;
+}
+.prev {
+  max-height: 160px;
+  max-width: 100%;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  display: none;
+  box-shadow: 2px 2px 0 var(--ink);
+  object-fit: cover;
+}
+.row-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+/* Search Box Cepat */
+.search-box {
+  position: relative;
+  width: 100%;
+}
+.search-input {
+  width: 100%;
+  border: 2px solid var(--ink);
+  background: var(--card);
+  padding: 10px 14px 10px 40px;
+  border-radius: 8px;
+  box-shadow: var(--sh);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--ink);
+  outline: none;
+}
+.search-input:focus {
+  border-color: var(--ink);
+  box-shadow: var(--sh-lg);
+}
+.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ink);
+  pointer-events: none;
+}
+
+/* Tag Chips */
+.chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 14px 0 20px;
+}
+.chip {
+  border: 2px solid var(--ink);
+  background: var(--card);
+  padding: 3px 12px;
+  font-weight: 700;
+  font-size: .85rem;
+  border-radius: 6px;
+  box-shadow: 2px 2px 0 var(--ink);
+  cursor: pointer;
+  color: var(--ink);
+  transition: transform .08s, box-shadow .08s;
+}
+.chip:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 var(--ink);
+}
+.chip[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--bg);
+  box-shadow: none;
+  transform: translate(2px, 2px);
+}
+
+/* Modern High-Performance Grid */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 18px;
+  align-items: start;
+}
+
+.card {
+  background: var(--card);
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  box-shadow: var(--sh);
+  overflow: hidden;
+  transition: transform .1s, box-shadow .1s;
+}
+.card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--sh-lg);
+}
+.card .pic {
+  display: block;
+  width: 100%;
+  border: 0;
+  border-bottom: 2px solid var(--ink);
+  padding: 0;
+  background: var(--y);
+  cursor: zoom-in;
+}
+.card img {
+  display: block;
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+}
+.card-body {
+  padding: 12px;
+}
+.card-body h2 {
+  margin: 0 0 6px;
+  font-size: 1.1rem;
+  line-height: 1.25;
+  font-weight: 700;
+}
+.pr {
+  margin: 0;
+  font-size: .9rem;
+  white-space: pre-wrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.4;
+}
+.card.open .pr {
+  -webkit-line-clamp: unset;
+  display: block;
+}
+.more {
+  background: none;
+  border: 0;
+  padding: 3px 0;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+  color: var(--ink);
+  display: inline-block;
+  margin-top: 3px;
+  font-size: .85rem;
+}
+.tags {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin: 8px 0;
+}
+.tag {
+  border: 1.5px solid var(--ink);
+  padding: 1px 7px;
+  font-size: .75rem;
+  font-weight: 700;
+  color: var(--on);
+  border-radius: 4px;
+}
+.acts {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.acts .btn {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.acts .btn:first-child {
+  flex-basis: 100%;
+}
+
+.empty {
+  grid-column: 1 / -1;
+  border: 2px dashed var(--ink);
+  background: var(--card);
+  padding: 34px 18px;
+  text-align: center;
+  border-radius: 8px;
+  box-shadow: var(--sh);
+  max-width: 480px;
+  margin: 20px auto;
+}
+.empty b {
+  font-size: 1.3rem;
+  display: block;
+  margin-bottom: 6px;
+}
+
+/* FAB Melayang di Pojok Kanan Bawah */
+.fab {
+  position: fixed;
+  right: 18px;
+  bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  width: 52px;
+  height: 52px;
+  border: 3px solid var(--ink);
+  border-radius: 12px;
+  background: var(--g);
+  color: var(--on);
+  font-size: 2rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--sh);
+  z-index: 40;
+  cursor: pointer;
+  transition: transform .08s, box-shadow .08s;
+}
+.fab:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--sh-lg);
+}
+.fab:active {
+  transform: translate(2px, 2px);
+  box-shadow: 0 0 0 var(--ink);
+}
+
+/* Toast Notifikasi */
+#toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  background: var(--g);
+  color: var(--on);
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  box-shadow: var(--sh);
+  padding: 8px 16px;
+  font-weight: 700;
+  font-size: .9rem;
+  z-index: 60;
+  max-width: calc(100vw - 32px);
+}
+#toast[hidden] {
+  display: none;
+}
+
+/* Login Gate */
+body:not(.authed) .wrap,
+body:not(.authed) .fab {
+  display: none !important;
+}
+body.authed #gate {
+  display: none !important;
+}
+#gate {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 20px 14px;
+}
+.gwrap {
+  width: min(420px, 100%);
+}
+.gtitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 18px;
+  font-size: clamp(1.8rem, 7vw, 2.6rem);
+  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: -.02em;
+  background-color: var(--y);
+  color: var(--on);
+  padding: 7px 16px;
+  border: 3px solid var(--ink);
+  border-radius: 8px;
+  box-shadow: var(--sh);
+  will-change: transform, background-color;
+  animation: titleWobble 3.4s ease-in-out infinite, titleHue 10s linear infinite;
+  user-select: none;
+}
+.gcard {
+  background: var(--card);
+  border: 3px solid var(--ink);
+  border-radius: 10px;
+  box-shadow: var(--sh-lg);
+  overflow: hidden;
+}
+.hint {
+  margin: 2px 0 0;
+  font-size: .84rem;
+  border: 1.5px dashed var(--ink);
+  background: rgba(0,0,0,0.02);
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-weight: 600;
+}
+
+/* Akun List */
+#accList {
+  display: grid;
+  gap: 8px;
+}
+.arow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  padding: 7px 10px;
+  background: var(--bg);
+}
+.arow b {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.role {
+  border: 1.5px solid var(--ink);
+  padding: 1px 6px;
+  font-size: .75rem;
+  font-weight: 700;
+  color: var(--on);
+  border-radius: 4px;
+}
+.aph {
+  font-weight: 500;
+  font-size: .8rem;
+  opacity: .85;
+}
+
+/* Detail Gambar */
+.detail-img {
+  width: 100%;
+  max-height: 340px;
+  object-fit: contain;
+  background: var(--ink);
+  display: block;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+}
+.detail-content {
+  display: grid;
+  gap: 10px;
+}
+.detail-pr {
+  display: block;
+  -webkit-line-clamp: unset;
+  background: var(--bg);
+  padding: 10px 12px;
+  border: 1.5px solid var(--ink);
+  border-radius: 6px;
+}
+
+@media(prefers-reduced-motion: reduce){
+  h1.app-title, .gtitle, .title-zap {
+    animation: none !important;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- Login / Gate Section -->
+<section id="gate">
+  <div class="gwrap">
+    <div class="gtitle">
+      <span class="title-zap">⚡</span> Gudang Prompt
+    </div>
+    <div class="gcard" id="gcard">
+      <div class="panel-head pink">
+        <div class="panel-title-wrap">
+          <span style="font-size:1.1rem">🔐</span>
+          <h3 style="margin:0;font-size:1.1rem">Masuk Dulu</h3>
+        </div>
+      </div>
+      <form class="panel-body" id="gform" novalidate>
+        <div class="alert-box" id="gerr" role="alert"></div>
+        <label class="nb-label" for="gu">Username
+          <input type="text" id="gu" class="nb-in" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="Masukkan username">
+        </label>
+        <label class="nb-label" for="gp">Password
+          <div class="pw-wrap">
+            <input type="password" id="gp" class="nb-in" autocomplete="current-password" placeholder="Masukkan password">
+            <button type="button" class="eye-btn" id="geye" aria-label="Tampilkan password" title="Tampilkan password">
+              <svg id="geyeIco" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </button>
+          </div>
+        </label>
+        <button class="btn green" type="submit" style="margin-top:4px;width:100%;height:42px">Masuk ke Gudang ➔</button>
+        <div class="hint">💡 Akun bawaan: <b>admin</b> / password: <b>admin123</b></div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- Main App Wrapper -->
+<div class="wrap">
+  <!-- Header: Title Animasi + Logout Button Samping Kanan (Ikon Saja) -->
+  <header class="app-header">
+    <div class="header-top-row">
+      <h1 class="app-title">
+        <span class="title-zap">⚡</span> GUDANG PROMPT
+      </h1>
+      <!-- Tombol Keluar: Posisikan di samping kanan judul, icon saja tanpa teks nama -->
+      <button type="button" class="logout-icon-btn" id="logoutBtn" title="Keluar dari akun" aria-label="Keluar">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+          <polyline points="16 17 21 12 16 7"></polyline>
+          <line x1="21" y1="12" x2="9" y2="12"></line>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Toolbar Tindakan & Indikator Firebase Cloud -->
+    <div class="tools-bar">
+      <button type="button" class="btn pink" id="addBtn">+ Tambah Prompt</button>
+      <button type="button" class="btn blue" id="accBtn" hidden>👥 Kelola Akun</button>
+      <button type="button" class="btn yel" id="theme" aria-label="Ganti mode terang atau gelap">🌓 Mode Tema</button>
+      <span class="cloud-badge" id="cloudStatus" title="Status Realtime Database Firebase">⚡ Firebase Cloud</span>
+    </div>
+  </header>
+
+  <!-- INLINE PANELS (Arsitektur Satu Halaman, Zero Dialog Backdrop, Auto-Close) -->
+  <div id="panelContainer" class="panel-container">
+    
+    <!-- Panel 1: Tambah / Edit Prompt -->
+    <section id="panelForm" class="nb-panel" hidden aria-labelledby="fTitle">
+      <div class="panel-head pink">
+        <div class="panel-title-wrap">
+          <span>✏️</span>
+          <h3 id="fTitle">Tambah Prompt</h3>
+        </div>
+        <button type="button" class="panel-close-btn" data-panel-close aria-label="Tutup form">✕</button>
+      </div>
+      <div class="panel-body">
+        <label class="nb-label">Judul
+          <input type="text" id="fT" class="nb-in" maxlength="80" placeholder="Contoh: Potret Kucing Astronot">
+          <span class="err" id="eT"></span>
+        </label>
+        <label class="nb-label">Gambar (opsional)
+          <input type="file" id="fF" accept="image/*" class="nb-in" style="padding-top:5px">
+        </label>
+        <img class="prev" id="prev" alt="Pratinjau gambar">
+        <label class="nb-label">Prompt Teks
+          <textarea id="fP" class="nb-in-area" placeholder="Tuliskan prompt AI lengkap di sini..."></textarea>
+          <span class="err" id="eP"></span>
+        </label>
+        <label class="nb-label">Tag (pisahkan dengan koma)
+          <input type="text" id="fG" class="nb-in" placeholder="potret, hewan, 3d, cyberpunk">
+        </label>
+        <div class="row-actions">
+          <button type="button" class="btn" data-panel-close>Batal</button>
+          <button type="button" class="btn green" id="save">💾 Simpan Prompt</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Panel 2: Kelola Akun (Admin Only) -->
+    <section id="panelAcc" class="nb-panel" hidden aria-labelledby="aT">
+      <div class="panel-head blue">
+        <div class="panel-title-wrap">
+          <span>👥</span>
+          <h3 id="aT">Kelola Akun Pengguna</h3>
+        </div>
+        <button type="button" class="panel-close-btn" data-panel-close aria-label="Tutup kelola akun">✕</button>
+      </div>
+      <div class="panel-body">
+        <div class="alert-box" id="aerr" role="alert"></div>
+        <div id="accList"></div>
+        
+        <form id="accForm" novalidate style="display:grid;gap:10px;border-top:2px solid var(--ink);padding-top:14px;margin-top:4px">
+          <b id="afT" style="font-size:1rem">Tambah Akun Baru</b>
+          <label class="nb-label">Username
+            <input type="text" id="au" class="nb-in" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="3-20 karakter">
+          </label>
+          <label class="nb-label">Password
+            <div class="pw-wrap">
+              <input type="password" id="ap" class="nb-in" autocomplete="new-password" placeholder="Minimal 6 karakter">
+              <button type="button" class="eye-btn" id="aeye" aria-label="Tampilkan password" title="Tampilkan password">
+                <svg id="aeyeIco" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+              </button>
+            </div>
+            <span class="aph" id="aph"></span>
+          </label>
+          
+          <!-- Custom Combobox Neobrutalism yang Senada dengan Tema -->
+          <label class="nb-label">Peran
+            <div class="nb-combo" id="comboRole">
+              <input type="hidden" id="ar" value="user">
+              <button type="button" class="nb-in nb-combo-btn" id="comboRoleBtn" aria-haspopup="listbox" aria-expanded="false">
+                <span class="nb-combo-val" id="comboRoleVal">Pengguna (Hanya Akses Prompt)</span>
+                <svg class="nb-combo-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M6 9l6 6 6-6"></path>
+                </svg>
+              </button>
+              <div class="nb-combo-dropdown" id="comboRoleList" role="listbox" hidden>
+                <button type="button" class="nb-combo-opt selected" role="option" data-val="user" aria-selected="true">
+                  <span>Pengguna (Hanya Akses Prompt)</span>
+                  <span class="nb-combo-check">✓</span>
+                </button>
+                <button type="button" class="nb-combo-opt" role="option" data-val="admin" aria-selected="false">
+                  <span>Admin (Akses Penuh + Kelola Akun)</span>
+                  <span class="nb-combo-check">✓</span>
+                </button>
+              </div>
+            </div>
+          </label>
+
+          <div class="row-actions">
+            <button type="button" class="btn" id="aCancel">Batal</button>
+            <button class="btn green" type="submit">💾 Simpan Akun</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- Panel 3: Konfirmasi Hapus Prompt -->
+    <section id="panelDel" class="nb-panel" hidden aria-labelledby="delTitle">
+      <div class="panel-head coral">
+        <div class="panel-title-wrap">
+          <span>🗑️</span>
+          <h3 id="delTitle">Hapus Prompt?</h3>
+        </div>
+        <button type="button" class="panel-close-btn" data-panel-close aria-label="Batal hapus">✕</button>
+      </div>
+      <div class="panel-body">
+        <p id="delTxt" style="margin:0;font-size:0.95rem;font-weight:600"></p>
+        <div class="row-actions">
+          <button type="button" class="btn" data-panel-close>Batal</button>
+          <button type="button" class="btn coral" id="delOk">Ya, Hapus Sekarang</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Panel 4: Detail & Pratinjau Prompt -->
+    <section id="panelDetail" class="nb-panel" hidden aria-labelledby="lbT">
+      <div class="panel-head yel">
+        <div class="panel-title-wrap">
+          <span>🔍</span>
+          <h3 id="lbT">Detail Prompt</h3>
+        </div>
+        <button type="button" class="panel-close-btn" data-panel-close aria-label="Tutup detail">✕</button>
+      </div>
+      <div class="panel-body">
+        <img id="lbI" alt="" class="detail-img" loading="lazy" decoding="async">
+        <div class="detail-content">
+          <div class="tags" id="lbG"></div>
+          <p class="pr detail-pr" id="lbP"></p>
+          <div class="row-actions">
+            <button type="button" class="btn green" id="lbC">📋 Salin Prompt</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Search Input Bar -->
+  <div class="search-box">
+    <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="8"></circle>
+      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+    </svg>
+    <input class="search-input" id="q" type="search" placeholder="Cari judul, prompt, atau tag..." aria-label="Cari prompt">
+  </div>
+
+  <!-- Tag Filter Chips -->
+  <div class="chips" id="chips" role="group" aria-label="Filter tag"></div>
+
+  <!-- Grid Prompt Cards (High Performance CSS Grid) -->
+  <main class="grid" id="grid"></main>
+</div>
+
+<!-- Floating Action Button (+ Melayang di Pojok Kanan Bawah) -->
+<button class="fab" id="fab" title="Tambah prompt baru" aria-label="Tambah prompt baru">+</button>
+
+<!-- Toast Alert -->
+<div id="toast" hidden role="status"></div>
+
+<script>
+(function(){
+  /* Bersihkan localStorage sepenuhnya (sesuai instruksi: LocalStorage Tidak perlu) */
+  try {
+    localStorage.removeItem("gudang-prompt-v1");
+    localStorage.removeItem("gudang-auth");
+    localStorage.removeItem("gudang-akun-v1");
+  } catch(e) {}
+
+  var $ = function(s){ return document.querySelector(s); };
+  var COL = ["var(--y)","var(--p)","var(--b)","var(--g)","var(--o)"];
+  var items = [], q = "", tag = "", editId = null, img = "", delId = null, tt;
+  var curUser = '', accs = [], editU = null;
+
+  /* Sesi login tab menggunakan memori & sessionStorage (bukan localStorage) */
+  try {
+    curUser = sessionStorage.getItem('gudang_session') || '';
+  } catch(e) {
+    curUser = '';
+  }
+
+  /* ---------- KONFIGURASI FIREBASE REALTIME DATABASE (100% CLOUD ONLY) ---------- */
+  var firebaseConfig = {
+    databaseURL: "https://gudangprompt-d8ee5-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "gudangprompt-d8ee5"
+  };
+
+  var fbDb = null;
+  var promptsRef = null;
+  var accsRef = null;
+
+  function updateCloudBadge(status, text) {
+    var el = $("#cloudStatus");
+    if (!el) return;
+    el.className = "cloud-badge " + (status || "");
+    el.textContent = text || "⚡ Firebase Cloud";
+  }
+
+  try {
+    if (window.firebase && firebase.initializeApp) {
+      var fbApp = firebase.initializeApp(firebaseConfig);
+      fbDb = firebase.database();
+      promptsRef = fbDb.ref('gudang_prompt/items');
+      accsRef = fbDb.ref('gudang_prompt/users');
+
+      // Pantau status koneksi real-time Firebase
+      fbDb.ref('.info/connected').on('value', function(snap){
+        var connected = Boolean(snap.val());
+        if (connected) {
+          updateCloudBadge('online', '🟢 Firebase Terhubung');
+        } else {
+          updateCloudBadge('offline', '🟡 Menghubungkan...');
+        }
+      });
+    } else {
+      updateCloudBadge('offline', '🔴 Firebase Belum Aktif');
+    }
+  } catch (e) {
+    console.warn('Firebase init warning:', e);
+    updateCloudBadge('offline', '🔴 Firebase Error');
+  }
+
+  /* SVG eye helper icons */
+  var eyeOpenSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
+  var eyeClosedSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>';
+
+  /* ---------- ARSITEKTUR PANEL SATU HALAMAN & AUTO-CLOSE PREVIOUS ---------- */
+  var activePanelId = null;
+  function setActivePanel(panelId) {
+    var allPanels = ['panelForm', 'panelAcc', 'panelDel', 'panelDetail'];
+    allPanels.forEach(function(pid){
+      var el = document.getElementById(pid);
+      if(!el) return;
+      if(pid === panelId){
+        el.hidden = false;
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      } else {
+        el.hidden = true;
+      }
+    });
+    activePanelId = panelId;
+  }
+
+  function closeActivePanel() {
+    if(activePanelId){
+      var el = document.getElementById(activePanelId);
+      if(el) el.hidden = true;
+      activePanelId = null;
+    }
+  }
+
+  /* Close listeners for [data-panel-close] */
+  document.addEventListener("click", function(e){
+    var c = e.target.closest("[data-panel-close]");
+    if(c){
+      closeActivePanel();
+    }
+  });
+
+  /* ---------- CUSTOM COMBOBOX CONTROLLER (SENADA DENGAN TEMA) ---------- */
+  function setRoleVal(val) {
+    var inp = $("#ar");
+    if(inp) inp.value = val;
+    var labelText = (val === "admin") ? "Admin (Akses Penuh + Kelola Akun)" : "Pengguna (Hanya Akses Prompt)";
+    var valEl = $("#comboRoleVal");
+    if(valEl) valEl.textContent = labelText;
+    
+    document.querySelectorAll(".nb-combo-opt").forEach(function(opt){
+      var isSel = opt.dataset.val === val;
+      opt.classList.toggle("selected", isSel);
+      opt.setAttribute("aria-selected", isSel ? "true" : "false");
+    });
+  }
+
+  function toggleRoleDropdown(open) {
+    var combo = $("#comboRole");
+    var list = $("#comboRoleList");
+    var btn = $("#comboRoleBtn");
+    if(!combo || !list) return;
+    var isOpen = (open !== undefined) ? open : list.hidden;
+    list.hidden = !isOpen;
+    combo.classList.toggle("open", isOpen);
+    if(btn) btn.setAttribute("aria-expanded", isOpen ? "true" : "false");
+  }
+
+  $("#comboRoleBtn").onclick = function(e){
+    e.preventDefault();
+    e.stopPropagation();
+    toggleRoleDropdown();
+  };
+
+  document.querySelectorAll(".nb-combo-opt").forEach(function(opt){
+    opt.onclick = function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      setRoleVal(this.dataset.val);
+      toggleRoleDropdown(false);
+    };
+  });
+
+  document.addEventListener("click", function(e){
+    if(!e.target.closest("#comboRole")){
+      toggleRoleDropdown(false);
+    }
+  });
+
+  /* ---------- GAMBAR CONTOH (SVG SEED RINGAN) ---------- */
+  function art(a,b,c,k){
+    var s='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 240"><rect width="400" height="240" fill="'+a+'"/>';
+    if(k==0)s+='<circle cx="140" cy="120" r="70" fill="'+b+'" stroke="#111" stroke-width="6"/><rect x="180" y="70" width="130" height="110" fill="'+c+'" stroke="#111" stroke-width="6"/>';
+    if(k==1)s+='<polygon points="200,30 340,210 60,210" fill="'+b+'" stroke="#111" stroke-width="6"/><circle cx="200" cy="150" r="36" fill="'+c+'" stroke="#111" stroke-width="6"/>';
+    if(k==2)s+='<rect x="40" y="40" width="320" height="50" fill="'+b+'" stroke="#111" stroke-width="6"/><rect x="40" y="110" width="180" height="50" fill="'+c+'" stroke="#111" stroke-width="6"/><circle cx="300" cy="180" r="40" fill="#fff" stroke="#111" stroke-width="6"/>';
+    if(k==3)s+='<path d="M0 180 Q100 80 200 160 T400 120 V240 H0Z" fill="'+b+'" stroke="#111" stroke-width="6"/><circle cx="300" cy="60" r="38" fill="'+c+'" stroke="#111" stroke-width="6"/>';
+    return "data:image/svg+xml;utf8,"+encodeURIComponent(s+"</svg>");
+  }
+  function seed(){
+    return [
+     {id:"s1",t:"Potret kucing astronot",p:"Potret sinematik kucing oranye memakai helm astronot, berdiri di permukaan bulan, cahaya rim biru dari Bumi, lensa 85mm, depth of field dangkal, detail bulu tajam, resolusi 4K.",g:["potret","hewan"],i:art("#FFE14D","#FF7AB6","#6FB5FF",0)},
+     {id:"s2",t:"Logo kedai kopi minimalis",p:"Logo vektor minimalis untuk kedai kopi bernama Kopi Senja, ikon cangkir dengan matahari terbenam, dua warna saja (cokelat dan krem), latar putih polos, garis tegas dan seimbang.",g:["logo","branding"],i:art("#6FB5FF","#FFE14D","#FF9F5A",1)},
+     {id:"s3",t:"Ilustrasi kota cyberpunk hujan",p:"Jalanan kota cyberpunk saat hujan malam hari, papan neon berbahasa Indonesia terpantul di genangan air, kabut tipis, kendaraan terbang di kejauhan, palet magenta dan cyan, sangat detail.",g:["kota","ilustrasi"],i:art("#FF7AB6","#3DDC97","#FFE14D",2)},
+     {id:"s4",t:"Pemandangan sawah pagi hari",p:"Hamparan sawah terasering di pagi berkabut, matahari terbit keemasan di balik gunung, petani dengan caping di kejauhan, gaya lukisan cat air yang lembut.",g:["alam","ilustrasi"],i:art("#3DDC97","#6FB5FF","#FFE14D",3)},
+     {id:"s5",t:"Karakter maskot lucu",p:"Maskot kartun berbentuk awan tersenyum dengan pipi merah muda, gaya sticker dengan outline putih tebal, warna pastel cerah, latar transparan, tampak depan.",g:["karakter","logo"],i:art("#FF9F5A","#FFE14D","#FF7AB6",0)}
+    ];
+  }
+
+  /* Simpan data langsung ke Firebase Realtime Database */
+  function save(){
+    if (promptsRef) {
+      promptsRef.set(items).then(function(){
+        updateCloudBadge('online', '🟢 Firebase Tersinkron');
+      }).catch(function(err){
+        console.warn('Gagal sinkron ke Firebase:', err);
+        updateCloudBadge('offline', '🔴 Gagal Simpan Firebase');
+        toast('Gagal menyimpan ke Firebase. Periksa Rules database.');
+      });
+    }
+  }
+
+  /* Tampilkan loading awal sebelum data diterima dari cloud */
+  $("#grid").innerHTML = '<div class="empty"><b>⏳ Menghubungkan ke Firebase...</b>Mengambil data prompt dari cloud database</div>';
+
+  /* Inisialisasi Sinkronisasi Real-time Prompts dari Firebase (Tanpa LocalStorage) */
+  if (promptsRef) {
+    promptsRef.on('value', function(snapshot){
+      var val = snapshot.val();
+      if (val) {
+        if (Array.isArray(val)) {
+          items = val.filter(Boolean);
+        } else if (typeof val === 'object') {
+          items = Object.keys(val).map(function(k){ return val[k]; });
+        }
+        renderAll();
+        updateCloudBadge('online', '🟢 Firebase Realtime');
+      } else {
+        // Jika cloud database masih kosong, inisialisasi data awal ke cloud
+        items = seed();
+        promptsRef.set(items);
+        renderAll();
+      }
+    }, function(err){
+      console.warn('Firebase prompts listener error:', err);
+      updateCloudBadge('offline', '🔴 Gagal Akses Firebase');
+      toast('Gagal membaca data dari Firebase: ' + (err.message || 'Periksa aturan Rules database'));
+    });
+  } else {
+    items = seed();
+    renderAll();
+  }
+
+  /* ---------- UTIL ---------- */
+  function esc(s){return String(s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+  function tcol(t){var h=0;for(var i=0;i<t.length;i++)h=(h*31+t.charCodeAt(i))>>>0;return COL[h%COL.length]}
+  function tagsHtml(g){return g.map(function(t){return '<span class="tag" style="background:'+tcol(t)+'">'+esc(t)+'</span>'}).join("")}
+  
+  function toast(msg,undoFn){
+    var el=$("#toast");clearTimeout(tt);el.innerHTML="<span>"+esc(msg)+"</span>";
+    if(undoFn){
+      var b=document.createElement("button");
+      b.className="btn sm";
+      b.textContent="Urungkan";
+      b.onclick=function(){undoFn();el.hidden=true};
+      el.appendChild(b);
+    }
+    el.hidden=false;
+    tt=setTimeout(function(){el.hidden=true}, undoFn?5000:2400);
+  }
+  
+  function copy(text){
+    function ok(){toast("Prompt berhasil disalin!")}
+    function fb(){
+      var a=document.createElement("textarea");a.value=text;document.body.appendChild(a);a.select();
+      try{document.execCommand("copy");ok()}catch(e){toast("Gagal menyalin. Silakan salin manual.")}
+      a.remove();
+    }
+    if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(text).then(ok,fb);else fb();
+  }
+
+  /* ---------- RENDER CHIPS & GRID (EFISIENSI TINGGI) ---------- */
+  function renderChips(){
+    var all={};items.forEach(function(x){if(x.g)x.g.forEach(function(t){all[t]=1})});
+    var names=Object.keys(all).sort();
+    if(tag&&!all[tag])tag="";
+    var ch='<button type="button" class="chip" aria-pressed="'+(tag==="")+'" data-tag="">Semua ('+items.length+')</button>';
+    names.forEach(function(t){
+      ch+='<button type="button" class="chip" aria-pressed="'+(tag===t)+'" data-tag="'+esc(t)+'">'+esc(t)+'</button>';
+    });
+    $("#chips").innerHTML=ch;
+  }
+
+  function renderGrid(){
+    var s=q.toLowerCase().trim();
+    var list=items.filter(function(x){
+      if(tag&&(!x.g||x.g.indexOf(tag)<0))return false;
+      return !s||((x.t||"")+" "+(x.p||"")+" "+(x.g?x.g.join(" "):"")).toLowerCase().indexOf(s)>=0;
+    });
+    var g=$("#grid");
+    if(!list.length){
+      g.innerHTML='<div class="empty"><b>'+(items.length?"Tidak ada hasil":"Belum ada prompt")+'</b>'+(items.length?"Coba kata kunci atau tag lain.":"Simpan prompt pertamamu supaya bisa dipakai lagi.")+'<br><br><button type="button" class="btn pink" data-act="add">+ Tambah prompt</button></div>';
+      return;
+    }
+    g.innerHTML=list.map(function(x){
+      return '<article class="card" data-id="'+x.id+'">'+
+      (x.i?'<button type="button" class="pic" data-act="view" aria-label="Lihat detail '+esc(x.t)+'"><img src="'+x.i+'" alt="'+esc(x.t)+'" loading="lazy" decoding="async"></button>':'')+
+      '<div class="card-body"><h2>'+esc(x.t)+'</h2><p class="pr">'+esc(x.p)+'</p>'+
+      ((x.p&&x.p.length>100)?'<button type="button" class="more" data-act="more" aria-expanded="false">Lihat selengkapnya</button>':'')+
+      '<div class="tags">'+tagsHtml(x.g||[])+'</div>'+
+      '<div class="acts"><button type="button" class="btn blue sm" data-act="copy">📋 Salin</button>'+
+      '<button type="button" class="btn sm" data-act="edit" aria-label="Edit '+esc(x.t)+'">✏️ Edit</button>'+
+      '<button type="button" class="btn coral sm" data-act="del" aria-label="Hapus '+esc(x.t)+'">🗑️ Hapus</button></div></div></article>';
+    }).join("");
+  }
+
+  function renderAll(){
+    renderChips();
+    renderGrid();
+  }
+
+  function find(id){for(var i=0;i<items.length;i++)if(items[i].id===id)return i;return -1}
+
+  /* ---------- FORM TAMBAH / EDIT ---------- */
+  function openForm(id){
+    editId=id||null;
+    var x=id?items[find(id)]:null;
+    $("#fTitle").textContent=x?"Edit Prompt":"Tambah Prompt";
+    $("#fT").value=x?x.t:"";
+    $("#fP").value=x?x.p:"";
+    $("#fG").value=x?(x.g?x.g.join(", "):""):"";
+    $("#fF").value="";
+    img=x?(x.i||""):"";
+    showPrev();
+    $("#eT").textContent="";
+    $("#eP").textContent="";
+    setActivePanel('panelForm');
+    setTimeout(function(){ $("#fT").focus(); }, 50);
+  }
+  function showPrev(){
+    var p=$("#prev");
+    if(img){
+      p.src=img;
+      p.style.display="block";
+    }else{
+      p.removeAttribute("src");
+      p.style.display="none";
+    }
+  }
+
+  $("#fF").addEventListener("change",function(e){
+    var f=e.target.files[0];if(!f)return;
+    var r=new FileReader();
+    r.onload=function(){
+      var im=new Image();
+      im.onload=function(){
+        var m=720,sc=Math.min(1,m/Math.max(im.width,im.height)),c=document.createElement("canvas");
+        c.width=Math.round(im.width*sc);
+        c.height=Math.round(im.height*sc);
+        c.getContext("2d").drawImage(im,0,0,c.width,c.height);
+        img=c.toDataURL("image/jpeg",.8);
+        showPrev();
+      };
+      im.onerror=function(){toast("File bukan gambar yang valid")};
+      im.src=r.result;
+    };
+    r.readAsDataURL(f);
+  });
+
+  $("#save").onclick=function(){
+    var t=$("#fT").value.trim(),p=$("#fP").value.trim();
+    $("#eT").textContent=t?"":"Isi judul dulu.";
+    $("#eP").textContent=p?"":"Isi teks prompt dulu.";
+    if(!t||!p)return;
+    var g=$("#fG").value.split(",").map(function(s){return s.trim().toLowerCase()}).filter(function(s,i,a){return s&&a.indexOf(s)===i});
+    if(editId){
+      var i=find(editId);
+      items[i]={id:editId,t:t,p:p,g:g,i:img};
+      toast("Perubahan prompt disimpan ke Firebase");
+    }else{
+      items.unshift({id:"p"+Date.now(),t:t,p:p,g:g,i:img});
+      toast("Prompt baru berhasil disimpan ke Firebase");
+    }
+    save();
+    renderAll();
+    closeActivePanel();
+  };
+
+  /* ---------- EVENT DELEGATION ---------- */
+  document.addEventListener("click",function(e){
+    var chip=e.target.closest("[data-tag]");
+    if(chip){
+      tag=chip.dataset.tag;
+      document.querySelectorAll(".chip").forEach(function(c){
+        c.setAttribute("aria-pressed", c.dataset.tag===tag);
+      });
+      renderGrid();
+      return;
+    }
+    var b=e.target.closest("[data-act]");
+    if(!b)return;
+    var act=b.dataset.act;
+    if(act==="add"){
+      openForm();
+      return;
+    }
+    var card=b.closest(".card"),id=card.dataset.id,x=items[find(id)];
+    if(act==="copy")copy(x.p);
+    if(act==="edit")openForm(id);
+    if(act==="more"){
+      var o=card.classList.toggle("open");
+      b.textContent=o?"Lihat lebih sedikit":"Lihat selengkapnya";
+      b.setAttribute("aria-expanded",o);
+    }
+    if(act==="del"){
+      delId=id;
+      $("#delTxt").textContent='Prompt "'+x.t+'" akan dihapus.';
+      setActivePanel('panelDel');
+    }
+    if(act==="view"){
+      $("#lbT").textContent=x.t;
+      if(x.i){
+        $("#lbI").src=x.i;
+        $("#lbI").style.display="block";
+      }else{
+        $("#lbI").style.display="none";
+      }
+      $("#lbI").alt=x.t;
+      $("#lbP").textContent=x.p;
+      $("#lbG").innerHTML=tagsHtml(x.g||[]);
+      $("#lbC").onclick=function(){copy(x.p)};
+      setActivePanel('panelDetail');
+    }
+  });
+
+  $("#delOk").onclick=function(){
+    var i=find(delId);if(i<0)return;
+    var gone=items.splice(i,1)[0],pos=i;
+    save();
+    renderAll();
+    closeActivePanel();
+    toast("Prompt dihapus dari Firebase",function(){
+      items.splice(pos,0,gone);
+      save();
+      renderAll();
+    });
+  };
+
+  $("#addBtn").onclick=function(){ openForm(); };
+  $("#fab").onclick=function(){ openForm(); };
+
+  /* Pencarian Cepat dengan Debounce Ringan */
+  var searchDebounce;
+  $("#q").addEventListener("input",function(e){
+    q=e.target.value;
+    clearTimeout(searchDebounce);
+    searchDebounce=setTimeout(renderGrid, 80);
+  });
+
+  $("#theme").onclick=function(){
+    var r=document.documentElement;
+    var isDark = r.dataset.theme ? r.dataset.theme === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+    r.dataset.theme = isDark ? "light" : "dark";
+  };
+
+  /* ---------- AUTH & KELOLA AKUN REALTIME FIREBASE (TANPA LOCALSTORAGE) ---------- */
+  function saveAccs(){
+    if (accsRef) {
+      accsRef.set(accs).catch(function(err){
+        console.warn('Gagal sinkron akun ke Firebase:', err);
+      });
+    }
+  }
+
+  function getAcc(u){
+    var k=(u||'').toLowerCase();
+    for(var i=0;i<accs.length;i++)if((accs[i].u||'').toLowerCase()===k)return accs[i];
+    return null;
+  }
+
+  function hash(s){
+    var enc=new TextEncoder().encode('gudang:'+s);
+    if(window.crypto&&crypto.subtle)return crypto.subtle.digest('SHA-256',enc).then(function(b){return Array.prototype.map.call(new Uint8Array(b),function(x){return('0'+x.toString(16)).slice(-2)}).join('')});
+    var h=5381;for(var i=0;i<enc.length;i++)h=((h<<5)+h+enc[i])>>>0;return Promise.resolve('w'+h.toString(16));
+  }
+  function adminCount(){return accs.filter(function(a){return a.r==='admin'}).length}
+
+  /* Listener Akun Firebase Realtime */
+  if (accsRef) {
+    accsRef.on('value', function(snapshot){
+      var val = snapshot.val();
+      if (val) {
+        if (Array.isArray(val)) {
+          accs = val.filter(Boolean);
+        } else if (typeof val === 'object') {
+          accs = Object.keys(val).map(function(k){ return val[k]; });
+        }
+        renderAcc();
+      } else {
+        // Inisialisasi akun admin default di Firebase jika masih kosong
+        accs = [{u:'admin', r:'admin', h:''}];
+        hash('admin123').then(function(h){
+          accs[0].h = h;
+          accsRef.set(accs);
+        });
+      }
+    }, function(err){
+      console.warn('Firebase accs listener error:', err);
+    });
+  }
+
+  function amsg(m,ok){
+    var x=$('#aerr');
+    x.textContent=m;
+    x.classList.add('show');
+    x.style.background=ok?'var(--g)':'var(--coral)';
+  }
+
+  function renderAcc(){
+    var me=curUser;
+    $('#accList').innerHTML=accs.map(function(a){
+      return '<div class="arow"><b>'+esc(a.u)+(a.u===me?' (kamu)':'')+'</b>'+
+      '<span class="role" style="background:'+(a.r==='admin'?'var(--p)':'var(--g)')+'">'+(a.r==='admin'?'Admin':'Pengguna')+'</span>'+
+      '<button type="button" class="btn sm" data-ae="'+esc(a.u)+'">Edit</button>'+
+      '<button type="button" class="btn coral sm" data-ad="'+esc(a.u)+'">Hapus</button></div>';
+    }).join('');
+  }
+
+  function resetAcc(){
+    editU=null;
+    $('#afT').textContent='Tambah Akun Baru';
+    $('#au').value='';
+    $('#ap').value='';
+    setRoleVal('user');
+    toggleRoleDropdown(false);
+    $('#aph').textContent='';
+  }
+
+  $('#accBtn').onclick=function(){
+    resetAcc();
+    $('#aerr').classList.remove('show');
+    renderAcc();
+    setActivePanel('panelAcc');
+  };
+  $('#aCancel').onclick=function(){
+    resetAcc();
+    $('#aerr').classList.remove('show');
+  };
+
+  $('#accList').addEventListener('click',function(e){
+    var be=e.target.closest('[data-ae]'),bd=e.target.closest('[data-ad]');
+    $('#aerr').classList.remove('show');
+    if(be){
+      var a=getAcc(be.dataset.ae);if(!a)return;
+      editU=a.u;
+      $('#afT').textContent='Edit Akun: '+a.u;
+      $('#au').value=a.u;
+      $('#ap').value='';
+      setRoleVal(a.r);
+      toggleRoleDropdown(false);
+      $('#aph').textContent='Kosongkan password jika tidak ingin diubah.';
+      $('#au').focus();
+    }
+    if(bd){
+      var t=getAcc(bd.dataset.ad);if(!t)return;
+      if(t.u===curUser)return amsg('Kamu tidak bisa menghapus akunmu sendiri.');
+      if(t.r==='admin'&&adminCount()<2)return amsg('Harus ada minimal satu admin.');
+      if(!bd.dataset.sure){
+        bd.dataset.sure='1';
+        bd.textContent='Yakin?';
+        setTimeout(function(){if(bd.isConnected){delete bd.dataset.sure;bd.textContent='Hapus'}},3000);
+        return;
+      }
+      accs.splice(accs.indexOf(t),1);
+      saveAccs();
+      renderAcc();
+      resetAcc();
+      amsg('Akun '+t.u+' berhasil dihapus dari Firebase.',true);
+    }
+  });
+
+  $('#accForm').addEventListener('submit',function(e){
+    e.preventDefault();
+    toggleRoleDropdown(false);
+    $('#aerr').classList.remove('show');
+    var u=$('#au').value.trim(),p=$('#ap').value,r=$('#ar').value;
+    if(!/^[A-Za-z0-9_.-]{3,20}$/.test(u))return amsg('Username 3-20 karakter.');
+    var ex=getAcc(u);
+    if(ex&&ex.u!==editU)return amsg('Username sudah dipakai oleh pengguna lain.');
+    if((!editU||p)&&p.length<6)return amsg('Password minimal 6 karakter.');
+    var tg=editU?getAcc(editU):null,me=curUser;
+    if(tg&&tg.r==='admin'&&r!=='admin'&&adminCount()<2)return amsg('Harus ada minimal satu admin tersisa.');
+    (p?hash(p):Promise.resolve(tg?tg.h:'')).then(function(h){
+      if(tg){
+        var was=tg.u;tg.u=u;tg.r=r;tg.h=h;
+        if(was===me)setAuth(u);
+      } else {
+        accs.push({u:u,r:r,h:h});
+      }
+      saveAccs();
+      renderAcc();
+      resetAcc();
+      amsg(tg?'Akun diperbarui di Firebase.':'Akun ditambahkan ke Firebase.',true);
+    });
+  });
+
+  function setAuth(u){
+    curUser = u || '';
+    try {
+      if(u) sessionStorage.setItem('gudang_session', u);
+      else sessionStorage.removeItem('gudang_session');
+    } catch(e){}
+    document.body.classList.toggle('authed', !!u);
+    var a=u?getAcc(u):null;
+    $('#accBtn').hidden=!(a&&a.r==='admin');
+    if(!u){
+      closeActivePanel();
+    }
+  }
+
+  function gfail(msg,el){
+    var g=$("#gerr");
+    g.textContent=msg;
+    g.classList.add("show");
+    if(el)el.focus();
+  }
+
+  /* Eye toggles */
+  $("#geye").onclick=function(){
+    var inp=$("#gp");
+    var s=inp.type==="password";
+    inp.type=s?"text":"password";
+    this.innerHTML=s?eyeClosedSvg:eyeOpenSvg;
+    this.setAttribute("aria-label",s?"Sembunyikan password":"Tampilkan password");
+  };
+  $("#aeye").onclick=function(){
+    var inp=$("#ap");
+    var s=inp.type==="password";
+    inp.type=s?"text":"password";
+    this.innerHTML=s?eyeClosedSvg:eyeOpenSvg;
+    this.setAttribute("aria-label",s?"Sembunyikan password":"Tampilkan password");
+  };
+
+  /* Form Login dengan verifikasi data langsung dari Firebase */
+  $("#gform").addEventListener("submit",function(e){
+    e.preventDefault();
+    $("#gerr").classList.remove("show");
+    var u=$("#gu").value.trim(),p=$("#gp").value;
+    if(!u)return gfail("Isi username terlebih dahulu.",$("#gu"));
+    if(!p)return gfail("Isi password terlebih dahulu.",$("#gp"));
+
+    function verifyLogin(userList) {
+      var acc = null;
+      var k = u.toLowerCase();
+      for (var i = 0; i < userList.length; i++) {
+        if ((userList[i].u || '').toLowerCase() === k) {
+          acc = userList[i];
+          break;
+        }
+      }
+      hash(p).then(function(h){
+        if(!acc||acc.h!==h)return gfail("Username atau password salah.",$("#gp"));
+        $("#gp").value="";
+        setAuth(acc.u);
+        toast("Selamat datang, "+acc.u+"!");
+      });
+    }
+
+    if (accs && accs.length) {
+      verifyLogin(accs);
+    } else if (accsRef) {
+      accsRef.once('value').then(function(snap){
+        var val = snap.val();
+        var list = [];
+        if (val) {
+          list = Array.isArray(val) ? val.filter(Boolean) : Object.keys(val).map(function(k){ return val[k]; });
+        }
+        if (!list.length) {
+          list = [{u:'admin', r:'admin', h:''}];
+          hash('admin123').then(function(h){
+            list[0].h = h;
+            accsRef.set(list);
+            verifyLogin(list);
+          });
+        } else {
+          verifyLogin(list);
+        }
+      }).catch(function(){
+        gfail("Gagal menghubungi server database Firebase.", $("#gu"));
+      });
+    } else {
+      gfail("Database Firebase belum terhubung.", $("#gu"));
+    }
+  });
+
+  $("#logoutBtn").onclick=function(){
+    setAuth(false);
+    $("#gu").focus();
+    window.scrollTo(0,0);
+  };
+
+  /* Inisialisasi Auth */
+  setAuth(curUser);
+  if(!curUser){
+    $("#gu").focus();
+  }
+})();
+</script>
+</body>
+</html>
